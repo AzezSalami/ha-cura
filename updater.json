@@ -1,0 +1,8 @@
+{
+  "last_update": "2026-10-30",
+  "repository": "AzezSalami/ha-cura",
+  "slug": "cura",
+  "source": "github",
+  "upstream_repo": "linuxserver/docker-cura",
+  "upstream_version": "5.13.0-ls161"
+}

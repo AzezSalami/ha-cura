@@ -1,0 +1,36 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# Editors / IDEs
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.orig
+tmp/
+temp/
+
+# Build output and archives
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Local Home Assistant test data / secrets
+secrets.yaml
+.env
+*.env
+options.json
+data/

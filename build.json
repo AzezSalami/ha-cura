@@ -1,0 +1,5 @@
+{
+  "build_from": {
+    "amd64": "lscr.io/linuxserver/cura:5.13.0-ls161"
+  }
+}

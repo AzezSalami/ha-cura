@@ -1,0 +1,152 @@
+# Keeps the Cura add-on up to date and publishes its image, so Home Assistant only has to pull.
+#
+#  - Daily (and on demand): checks linuxserver/docker-cura for a new release. When there is one
+#    it pins build.json to it, bumps the add-on version and CHANGELOG, and commits that.
+#  - Then builds the image and pushes it to ghcr.io/azezsalami/cura-amd64:<version>.
+#    Home Assistant sees the new version in config.yaml and offers the update.
+#  - On every push (except README/CHANGELOG-only edits): rebuilds the current version (for your own changes).
+#
+# Commits made with GITHUB_TOKEN do not trigger new workflow runs, so the build runs in this
+# same workflow, right after the update job.
+
+name: Update and build Cura add-on
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: Rebuild the image even if nothing changed
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: cura-builder
+  cancel-in-progress: false
+
+env:
+  # Folder holding the add-on (config.yaml). "." = repository root.
+  ADDON: "."
+  UPSTREAM_REPO: linuxserver/docker-cura
+  UPSTREAM_IMAGE: lscr.io/linuxserver/cura
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for a new upstream release
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh api "repos/${UPSTREAM_REPO}/releases/latest" --jq .tag_name)"
+          if [[ ! "$tag" =~ ^([0-9]+(\.[0-9]+)*)-ls([0-9]+)$ ]]; then
+            echo "::error::Unexpected upstream tag format: $tag"
+            exit 1
+          fi
+          # 5.13.0-ls161 -> 5.13.0.161 (a dot, not a hyphen: Home Assistant would treat
+          # 5.13.0-161 as a pre-release older than 5.13.0)
+          version="${BASH_REMATCH[1]}.${BASH_REMATCH[3]}"
+          current="$(sed -n -E 's/^version: "?([^"]*)"?$/\1/p' "$ADDON/config.yaml")"
+          echo "Upstream: $tag -> $version, add-on: $current"
+
+          if [ "$version" != "$current" ]; then
+            today="$(date -u +%Y-%m-%d)"
+            sed -i -E "s/^version: .*/version: \"${version}\"/" "$ADDON/config.yaml"
+            jq --arg img "${UPSTREAM_IMAGE}:${tag}" '.build_from.amd64 = $img' \
+              "$ADDON/build.json" > build.tmp && mv build.tmp "$ADDON/build.json"
+            jq --arg t "$tag" --arg d "$today" '.upstream_version = $t | .last_update = $d' \
+              "$ADDON/updater.json" > upd.tmp && mv upd.tmp "$ADDON/updater.json"
+            {
+              printf '## %s (%s)\n' "$version" "$today"
+              printf -- '- Update to linuxserver/docker-cura `%s` (changelog: https://github.com/%s/releases/tag/%s)\n\n' "$tag" "$UPSTREAM_REPO" "$tag"
+              cat "$ADDON/CHANGELOG.md"
+            } > cl.tmp && mv cl.tmp "$ADDON/CHANGELOG.md"
+          fi
+
+      - name: Commit changes
+        id: commit
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          version="$(sed -n -E 's/^version: "?([^"]*)"?$/\1/p' "$ADDON/config.yaml")"
+          git commit -am "Cura add-on ${version}"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to build
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "push" ] \
+             || [ "${{ steps.commit.outputs.changed }}" = "true" ] \
+             || { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_build }}" = "true" ]; }; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: update
+    if: needs.update.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Branch ref, not the triggering SHA, so the commit pushed by the update job is included
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Read add-on metadata
+        id: meta
+        run: |
+          cfg="$ADDON/config.yaml"
+          {
+            echo "version=$(sed -n -E 's/^version: "?([^"]*)"?$/\1/p' "$cfg")"
+            echo "image=$(sed -n -E 's/^image: (.*)$/\1/p' "$cfg" | sed 's/{arch}/amd64/')"
+            echo "name=$(sed -n -E 's/^name: (.*)$/\1/p' "$cfg")"
+            echo "description=$(sed -n -E 's/^description: (.*)$/\1/p' "$cfg")"
+            echo "from=$(jq -r '.build_from.amd64' "$ADDON/build.json")"
+            echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.ADDON }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}:latest
+          build-args: |
+            BUILD_FROM=${{ steps.meta.outputs.from }}
+            BUILD_ARCH=amd64
+            BUILD_VERSION=${{ steps.meta.outputs.version }}
+            BUILD_DATE=${{ steps.meta.outputs.date }}
+            BUILD_REF=${{ github.sha }}
+            BUILD_REPOSITORY=${{ github.repository }}
+            BUILD_NAME=${{ steps.meta.outputs.name }}
+            BUILD_DESCRIPTION=${{ steps.meta.outputs.description }}
