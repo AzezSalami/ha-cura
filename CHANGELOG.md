@@ -1,3 +1,6 @@
+## 5.13.0.161 (2026-10-31)
+- Update to linuxserver/docker-cura `5.13.0-ls161` (changelog: https://github.com/linuxserver/docker-cura/releases/tag/5.13.0-ls161)
+
 ## 5.13.0.161.2 (2026-10-31)
 - Republish the plain-HTTP fix from 5.13.0.161.1: the update workflow had reset the version to 5.13.0.161, so Home Assistant never offered the fixed image
 - Update workflow: a local fix version such as 5.13.0.161.1 now counts as up to date with upstream 5.13.0-ls161
