@@ -45,7 +45,15 @@ In Cura open **Preferences → Configure Cura → General** and **disable crash 
 
 ### Access
 - **Ingress:** sidebar → Cura.
-- **Direct:** enable port `3001` in the Network section, then open `https://<ha-ip>:3001` (self-signed cert; HTTPS is required by Selkies).
+- **Direct HTTPS:** enable port `3001` in the Network section, then open `https://<ha-ip>:3001` (self-signed certificate – accept the browser warning).
+- **Direct HTTP:** enable port `3000` in the Network section, then open `http://<ha-ip>:3000`.
+
+### HTTP vs HTTPS
+Both work, including *Open Web UI* when you reach Home Assistant over `http://`. Browsers only offer some features on HTTPS, so over plain HTTP:
+- the stream uses JPEG instead of hardware H.264 decoding: a little more bandwidth and CPU, slightly softer picture;
+- copy/paste between your computer and Cura is unavailable (file upload/download in the sidebar still works).
+
+HTTP is unencrypted: only use it on your home network, and set `PASSWORD` if you open port 3000.
 
 ## Notes
 - Home Assistant ignores `shm_size`; the image copes with the default `/dev/shm`.

@@ -63,6 +63,28 @@ RUN if [ -f /etc/s6-overlay/s6-rc.d/svc-selkies/run ]; then \
         sed -i "1a\set +e" /etc/s6-overlay/s6-rc.d/svc-selkies/run; \
     fi
 
+# Allow plain-HTTP access (e.g. Home Assistant on http://homeassistant.local:8123).
+# The Selkies web client refuses to start when the page is not a "secure context", although
+# everything it needs then has a fallback: video drops to the JPEG encoder (no WebCodecs),
+# and clipboard sync and file upload already check for the APIs they use. A tiny script at
+# the top of each dashboard page reports the page as secure before the client loads, so it
+# takes those fallbacks instead of stopping. On HTTPS the browser already reports a secure
+# context and the script does nothing. Patched in the dashboard sources, which init-nginx
+# copies to /usr/share/selkies/web on every start.
+# hadolint ignore=SC2016
+RUN marker="ha-cura-allow-http"; \
+    shim='<script>/*'"$marker"'*/if(!window.isSecureContext){try{Object.defineProperty(window,"isSecureContext",{get:function(){return true},configurable:true})}catch(e){}}</script>'; \
+    patched=0; \
+    for page in /usr/share/selkies/*/index.html; do \
+        [ -f "$page" ] || continue; \
+        if grep -q "$marker" "$page"; then patched=$((patched + 1)); continue; fi; \
+        grep -q "<head>" "$page" || continue; \
+        sed -i "0,/<head>/s||<head>${shim}|" "$page"; \
+        echo "Allowed plain HTTP in $page"; \
+        patched=$((patched + 1)); \
+    done; \
+    if [ "$patched" -eq 0 ]; then echo "WARNING: no Selkies dashboard page patched; plain HTTP access stays blocked"; fi
+
 # Modules
 ARG MODULES="00-banner.sh 00-global_var.sh 01-custom_script.sh 00-local_mounts.sh 00-smb_mounts.sh 90-dns_set.sh"
 

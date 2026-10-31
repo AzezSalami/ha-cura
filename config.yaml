@@ -38,8 +38,10 @@ options:
 panel_admin: false
 panel_icon: mdi:printer-3d-nozzle
 ports:
+  3000/tcp: null
   3001/tcp: null
 ports_description:
+  3000/tcp: Cura web interface (http)
   3001/tcp: Cura web interface (https)
 privileged:
   - SYS_ADMIN
@@ -68,5 +70,5 @@ slug: cura
 tmpfs: true
 udev: true
 url: https://github.com/AzezSalami/ha-cura
-version: "5.13.0.161"
+version: "5.13.0.161.1"
 video: true
