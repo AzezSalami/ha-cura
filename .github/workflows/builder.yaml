@@ -63,7 +63,9 @@ jobs:
           current="$(sed -n -E 's/^version: "?([^"]*)"?$/\1/p' "$ADDON/config.yaml")"
           echo "Upstream: $tag -> $version, add-on: $current"
 
-          if [ "$version" != "$current" ]; then
+          # A local fix on top of an upstream build gets an extra number (5.13.0.161.1);
+          # that still counts as up to date with 5.13.0-ls161.
+          if [ "$current" != "$version" ] && [[ "$current" != "$version".* ]]; then
             today="$(date -u +%Y-%m-%d)"
             sed -i -E "s/^version: .*/version: \"${version}\"/" "$ADDON/config.yaml"
             jq --arg img "${UPSTREAM_IMAGE}:${tag}" '.build_from.amd64 = $img' \
