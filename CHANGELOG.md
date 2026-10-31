@@ -1,3 +1,6 @@
+## 5.13.0.161.3 (2026-10-31)
+- Fix slicing failing with "Backend exited abnormally with return code -9": crash reports, slice statistics and update checks are now switched off in Cura's preferences at every start. linuxserver/docker-cura documents that Cura runs out of memory otherwise. On a new install this applies from the second start of the add-on
+
 ## 5.13.0.161.2 (2026-10-31)
 - Republish the plain-HTTP fix from 5.13.0.161.1: the update workflow had reset the version to 5.13.0.161, so Home Assistant never offered the fixed image
 - Update workflow: a local fix version such as 5.13.0.161.1 now counts as up to date with upstream 5.13.0-ls161

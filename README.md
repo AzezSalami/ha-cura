@@ -22,7 +22,7 @@ Versions follow the upstream tag: `5.13.0-ls161` becomes add-on version `5.13.0.
 
 ## First start – required
 
-In Cura open **Preferences → Configure Cura → General** and **disable crash reports, update checks and notifications**. Upstream documents that Cura runs out of memory and crashes otherwise. The add-on log prints this reminder until it's done.
+Upstream documents that Cura runs out of memory while slicing (CuraEngine killed, "return code -9") unless crash reports, update checks and notifications are off. The add-on switches these off in Cura's preferences at every start. Cura only creates its preferences the first time it opens, so on a new install **restart the add-on once** after Cura has appeared. The add-on log says when this is needed.
 
 ## Configuration
 
@@ -57,4 +57,4 @@ HTTP is unencrypted: only use it on your home network, and set `PASSWORD` if you
 
 ## Notes
 - Home Assistant ignores `shm_size`; the image copes with the default `/dev/shm`.
-- Cura is heavy: plan for 2–4 GB RAM while slicing.
+- Cura is heavy: plan for 2–4 GB of free RAM while slicing. If slicing still fails with "return code -9", the host itself is out of memory: check **Settings → System → Hardware** and **Settings → System → Logs → Host** for `Out of memory: Killed process ... CuraEngine`, and give the machine or VM more RAM.
