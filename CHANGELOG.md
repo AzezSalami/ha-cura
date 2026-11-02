@@ -1,3 +1,6 @@
+## 5.13.0.162 (2026-11-02)
+- Update to linuxserver/docker-cura `5.13.0-ls162` (changelog: https://github.com/linuxserver/docker-cura/releases/tag/5.13.0-ls162)
+
 ## 5.13.0.161.3 (2026-10-31)
 - Fix slicing failing with "Backend exited abnormally with return code -9": crash reports, slice statistics and update checks are now switched off in Cura's preferences at every start. linuxserver/docker-cura documents that Cura runs out of memory otherwise. On a new install this applies from the second start of the add-on
 

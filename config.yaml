@@ -70,5 +70,5 @@ slug: cura
 tmpfs: true
 udev: true
 url: https://github.com/AzezSalami/ha-cura
-version: "5.13.0.161.3"
+version: "5.13.0.162"
 video: true
