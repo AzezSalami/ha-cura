@@ -1,3 +1,6 @@
+## 5.14.0.165 (2026-11-09)
+- Update to linuxserver/docker-cura `5.14.0-ls165` (changelog: https://github.com/linuxserver/docker-cura/releases/tag/5.14.0-ls165)
+
 ## 5.14.0.164 (2026-11-07)
 - Update to linuxserver/docker-cura `5.14.0-ls164` (changelog: https://github.com/linuxserver/docker-cura/releases/tag/5.14.0-ls164)
 
